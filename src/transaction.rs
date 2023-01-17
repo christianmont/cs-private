@@ -1,18 +1,41 @@
-use serde::{Serialize,Deserialize};
-use ring::signature::{Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
+use serde::{Serialize, Deserialize};
+use ring::{digest, signature};
+use ring::signature::{Ed25519KeyPair, KeyPair, Signature, UnparsedPublicKey};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Transaction {
+    input: Vec<Input>,
+    output: Vec<Output>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct Input {
+    // Add fields for input here, such as an address or transaction id
+    pub address: String,
+    pub transaction_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct Output {
+    // Add fields for output here, such as an address and amount
+    pub address: String,
+    pub amount: u64,
 }
 
 /// Create digital signature of a transaction
 pub fn sign(t: &Transaction, key: &Ed25519KeyPair) -> Signature {
-    unimplemented!()
+    let data = serde_json::to_string(t).unwrap();
+    let data = data.as_bytes();
+    key.sign(data)
 }
 
 /// Verify digital signature of a transaction, using public key instead of secret key
 pub fn verify(t: &Transaction, public_key: &<Ed25519KeyPair as KeyPair>::PublicKey, signature: &Signature) -> bool {
-    unimplemented!()
+    match ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key.as_ref()).verify(
+    bincode::serialize(&t).unwrap().as_ref(), signature.as_ref()) {
+        Result::Ok(()) => true,
+        Result::Err(_) => false,
+    }
 }
 
 #[cfg(any(test, test_utilities))]
@@ -21,8 +44,9 @@ mod tests {
     use crate::crypto::key_pair;
 
     pub fn generate_random_transaction() -> Transaction {
-        Default::default()
-        //unimplemented!()
+        let input = vec![Input::default(); 2];
+        let output = vec![Output::default(); 2];
+        Transaction { input, output }
     }
 
     #[test]
