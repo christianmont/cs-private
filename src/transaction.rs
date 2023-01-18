@@ -24,9 +24,8 @@ pub struct Output {
 
 /// Create digital signature of a transaction
 pub fn sign(t: &Transaction, key: &Ed25519KeyPair) -> Signature {
-    let data = serde_json::to_string(t).unwrap();
-    let data = data.as_bytes();
-    key.sign(data)
+    let data = bincode::serialize(t).unwrap();
+    key.sign(&data)
 }
 
 /// Verify digital signature of a transaction, using public key instead of secret key
@@ -41,11 +40,15 @@ pub fn verify(t: &Transaction, public_key: &<Ed25519KeyPair as KeyPair>::PublicK
 #[cfg(any(test, test_utilities))]
 mod tests {
     use super::*;
-    use crate::crypto::key_pair;
+    use crate::crypto::key_pair::{self, random};
 
     pub fn generate_random_transaction() -> Transaction {
-        let input = vec![Input::default(); 2];
-        let output = vec![Output::default(); 2];
+        let num = rand::random::<u8>()%2;
+        let mut input = vec![];
+        if(num > 0) {
+            input = vec![Default::default()];
+        }
+        let output = vec![];
         Transaction { input, output }
     }
 
