@@ -1,8 +1,10 @@
 use serde::{Serialize, Deserialize};
 use ring::{digest, signature};
 use ring::signature::{Ed25519KeyPair, KeyPair, Signature, UnparsedPublicKey};
+use crate::crypto::hash::Hashable;
+use crate::crypto::hash::H256;
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Transaction {
     input: Vec<Input>,
     output: Vec<Output>,
@@ -34,6 +36,13 @@ pub fn verify(t: &Transaction, public_key: &<Ed25519KeyPair as KeyPair>::PublicK
     bincode::serialize(&t).unwrap().as_ref(), signature.as_ref()) {
         Result::Ok(()) => true,
         Result::Err(_) => false,
+    }
+}
+
+impl Hashable for Transaction {
+    fn hash(&self) -> H256 {
+        let bytes = bincode::serialize(&self).unwrap();
+        ring::digest::digest(&ring::digest::SHA256, &bytes).into()
     }
 }
 
